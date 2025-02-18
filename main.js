@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Simplified, easy & fun word bank
   const wordPool = [
-    // Easy and fun words (80%)
-    "emily <3", "cat", "dog", "sun", "star", "moon", "sky", "sea", "wave", "coral", "fish",
+    "emily", "cat", "dog", "sun", "star", "moon", "sky", "sea", "wave", "coral", "fish",
     "blue", "red", "green", "light", "deep", "fun", "joy", "play", "cool", "smile",
     "happy", "chill", "surf", "dive", "ocean", "tide", "breeze", "shell", "sand", "reef",
     "jump", "laugh", "dance", "float", "run", "walk", "zoom", "apple", "banana", "grape",
