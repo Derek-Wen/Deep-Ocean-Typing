@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const wordContainer = document.getElementById('word-container');
   const statsDisplay = document.getElementById('stats-display');
   const toggleStatsButton = document.getElementById('toggle-stats');
+  const toggleSoundButton = document.getElementById('toggle-sound');
   const keystrokeTimestamps = [];
   let typingTimer;
   let aboveThresholdTime = 0; // Accumulated time above 80 wpm (in ms, clamped 0–10000)
@@ -11,7 +12,97 @@ document.addEventListener('DOMContentLoaded', () => {
   let persistentParticles = [];
   const maxPersistentParticles = 150;
 
-  // NEW: Stats variables
+  // --- Audio Setup ---
+  // Background audio (looping)
+  const bgAudio = new Audio('assets/underwater_bg.mp3');
+  bgAudio.loop = true;
+  let soundOn = false;
+
+  // Magical surface audio (for background changes)
+  let magicalSurfaceAudio = null;
+  let magicalSurfaceFadeInterval = null;
+
+  // Toggle sound event listener for background audio (and all sounds)
+  toggleSoundButton.addEventListener('click', () => {
+    soundOn = !soundOn;
+    if (soundOn) {
+      bgAudio.play();
+      toggleSoundButton.textContent = "Mute Sound";
+    } else {
+      bgAudio.pause();
+      toggleSoundButton.textContent = "Play Sound";
+      // Immediately stop magical_surface audio if playing.
+      if (magicalSurfaceAudio) {
+        magicalSurfaceAudio.pause();
+        magicalSurfaceAudio = null;
+        if (magicalSurfaceFadeInterval) {
+          clearInterval(magicalSurfaceFadeInterval);
+          magicalSurfaceFadeInterval = null;
+        }
+      }
+    }
+  });
+
+  // Function to play the ripple sound effect
+  function playRippleSound() {
+    if (!soundOn) return;
+    const rippleAudio = new Audio('assets/underwater_movement.wav');
+    rippleAudio.play();
+  }
+
+  // Function to play the keyboard typing sound (for non-deleting keys) at lower volume.
+  function playKeyboardSound() {
+    if (!soundOn) return;
+    const keyboardAudio = new Audio('assets/keyboard_type.wav');
+    keyboardAudio.volume = 0.3; // Lower volume
+    keyboardAudio.play();
+  }
+
+  // Function to play the keyboard deletion sound (for Backspace)
+  function playKeyboardDeleteSound() {
+    if (!soundOn) return;
+    const deleteAudio = new Audio('assets/keyboard_type_2.wav');
+    deleteAudio.play();
+  }
+
+  // Function to play the particles sound effect using particles_2.mp3.
+  function playParticleSound() {
+    if (!soundOn) return;
+    const particleAudio = new Audio('assets/particles_2.mp3');
+    particleAudio.play();
+  }
+
+  // --- Background Change Audio ---
+  // When the background starts to change, we start playing magical_surface in loop.
+  // When factor becomes 0, we gradually fade it out.
+  function updateMagicalSurfaceAudio(factor) {
+    if (!soundOn) return;
+    if (factor > 0) {
+      if (!magicalSurfaceAudio) {
+        magicalSurfaceAudio = new Audio('assets/magical_surface.wav');
+        magicalSurfaceAudio.loop = true;
+        magicalSurfaceAudio.volume = 1;
+        magicalSurfaceAudio.play();
+      }
+      // Optionally adjust volume based on factor.
+    } else {
+      if (magicalSurfaceAudio && !magicalSurfaceFadeInterval) {
+        // Fade out magicalSurfaceAudio over ~2 seconds
+        magicalSurfaceFadeInterval = setInterval(() => {
+          if (magicalSurfaceAudio.volume > 0.05) {
+            magicalSurfaceAudio.volume = Math.max(0, magicalSurfaceAudio.volume - 0.05);
+          } else {
+            magicalSurfaceAudio.pause();
+            magicalSurfaceAudio = null;
+            clearInterval(magicalSurfaceFadeInterval);
+            magicalSurfaceFadeInterval = null;
+          }
+        }, 100);
+      }
+    }
+  }
+
+  // --- Stats Variables ---
   let totalTypedLetters = 0;
   let totalCorrectLetters = 0;
   let currentWpm = 0;
@@ -69,14 +160,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const centerY = rect.top + rect.height / 2;
     ripple.style.left = `${centerX}px`;
     ripple.style.top = `${centerY}px`;
-    const finalScale = Math.random() * 60 + 20;
+    const finalScale = Math.random() * 80 + 20;
     ripple.style.setProperty('--final-scale', finalScale);
     document.body.appendChild(ripple);
+    
+    // Play the ripple sound effect
+    playRippleSound();
+    
     setTimeout(() => { ripple.remove(); }, 800);
   }
 
   // Trigger the particle effect every 5 words.
   function triggerParticles() {
+    // Play particle sound effect using particles_2.mp3.
+    playParticleSound();
+    
     const count = Math.floor(Math.random() * 20) + 40;
     for (let i = 0; i < count; i++) {
       const particle = document.createElement('div');
@@ -166,6 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const newB = Math.round((1 - factor) * 0 + factor * 255);
     document.body.style.background = `linear-gradient(135deg, #000000, rgba(${newR},${newG},${newB},0.81))`;
   
+    // Update the magical_surface audio based on factor.
+    updateMagicalSurfaceAudio(factor);
+  
     // Persistent particles: add until the count reaches factor * maxPersistentParticles.
     if (wpm >= 80) {
       const targetCount = Math.round(factor * maxPersistentParticles);
@@ -177,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         removePersistentParticles();
       }
     }
-
+  
     // Update stats display if visible
     if (statsVisible) {
       updateStatsDisplay();
@@ -243,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     
-    // NEW: Update stats based on completed word.
+    // Update stats based on completed word.
     let wordTotal = letterSpans.length;
     let wordCorrect = 0;
     letterSpans.forEach(span => {
@@ -254,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     totalTypedLetters += wordTotal;
     totalCorrectLetters += wordCorrect;
     
-    // Optionally, you can trigger extra effects for fully correct words.
+    // Trigger extra effects: ripple and particles.
     triggerRipple();
     if (currentWordIndex > 0 && currentWordIndex % 5 === 0) {
       triggerParticles();
@@ -262,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     continueMoveToNextWord();
   }
 
-  // --- New: Bubble Trail Effect at Bottom of Screen ---
+  // --- Bubble Trail Effect at Bottom of Screen ---
   function addBubbleTrail(e) {
     // Skip for Backspace
     if (e.key === 'Backspace') return;
@@ -285,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // --- End Bubble Trail Effect ---
 
-  // NEW: Update the stats display element
+  // Update the stats display element.
   function updateStatsDisplay() {
     let accuracy = totalTypedLetters > 0 
       ? Math.round((totalCorrectLetters / totalTypedLetters) * 100)
@@ -293,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     statsDisplay.textContent = `Accuracy: ${accuracy}% | WPM: ${currentWpm}`;
   }
 
-  // NEW: Toggle button event listener
+  // Toggle button event listener for stats display.
   toggleStatsButton.addEventListener('click', () => {
     statsVisible = !statsVisible;
     if (statsVisible) {
@@ -306,6 +407,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- Purple Wave Effect ---
+  // This function creates a luminescent purple wave that sweeps through the screen
+  // and plays the "magical_disorder" audio.
+  function triggerPurpleWave() {
+    const wave = document.createElement('div');
+    // Inline styles for the purple wave effect
+    wave.style.position = 'fixed';
+    wave.style.top = '0';
+    wave.style.left = '-100%';
+    wave.style.width = '100%';
+    wave.style.height = '100%';
+    wave.style.pointerEvents = 'none';
+    wave.style.background = 'linear-gradient(90deg, transparent, rgba(128,0,128,0.5), transparent)';
+    wave.style.opacity = '0.7';
+    wave.style.zIndex = '0';
+    wave.style.transition = 'transform 5s ease-out, opacity 5s ease-out';
+    document.body.appendChild(wave);
+    // Start the animation after a brief delay
+    setTimeout(() => {
+      wave.style.transform = 'translateX(200%)';
+      wave.style.opacity = '0';
+    }, 100);
+    // Remove the element after the animation
+    setTimeout(() => { wave.remove(); }, 5100);
+    // Play the magical_disorder audio
+    if (soundOn) {
+      const disorderAudio = new Audio('assets/magical_disorder.wav');
+      disorderAudio.play();
+    }
+  }
+
+  // Schedule the purple wave to trigger at a random interval (0 to 20 seconds)
+  function schedulePurpleWave() {
+    const delay = Math.random() * 20000;
+    setTimeout(() => {
+      triggerPurpleWave();
+      schedulePurpleWave();
+    }, delay);
+  }
+
+  // Start scheduling the purple wave effect
+  schedulePurpleWave();
+
   // Initial word generation.
   generateWords();
 
@@ -317,6 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (e.key === 'Backspace') {
+      // Play deletion sound effect for Backspace.
+      playKeyboardDeleteSound();
       currentInput = currentInput.slice(0, -1);
       updateCurrentWordDisplay();
       userIsTyping();
@@ -324,13 +470,16 @@ document.addEventListener('DOMContentLoaded', () => {
       updateBackgroundBasedOnSpeed();
       return;
     }
+    // For non-deleting keystrokes, play typing sound.
+    playKeyboardSound();
+    
     currentInput += e.key;
     updateCurrentWordDisplay();
     userIsTyping();
     keystrokeTimestamps.push(Date.now());
     updateBackgroundBasedOnSpeed();
     
-    // Add bubble trail effect on each keystroke (bubbles appear at the bottom of the screen)
+    // Add bubble trail effect on each keystroke.
     addBubbleTrail(e);
   });
 

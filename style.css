@@ -16,6 +16,7 @@
     background: linear-gradient(135deg, #000000, rgb(0,26,44));
     color: #fff;
     display: flex;
+    flex-direction: column; /* added line */
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -23,6 +24,7 @@
     position: relative;
     transition: background 0.3s ease;
   }
+    
   
   /* Container for words with a subtle dark blue tint */
   #word-container {
@@ -39,8 +41,8 @@
     max-height: 300px;
     overflow-y: auto;
     box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-    position: relative;
-    z-index: 2;
+    margin: 0 auto;
+    /* position: relative; no longer needed for stats */
     transition: box-shadow 0.3s ease, transform 0.3s ease;
   }
   
@@ -54,7 +56,7 @@
     position: fixed;
     width: 20px;
     height: 20px;
-    background: rgba(102,204,255,0.8);
+    background: rgba(15, 114, 196, 0.8);
     border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
@@ -185,10 +187,25 @@
     }
   }
 
-  /* Toggle button styling */
-#developer-info button {
-  display: block;
+/* Developer info styling */
+#developer-info {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 14px;
+  color: #fff;
+  z-index: 3;
+}
+
+/* Container for toggle buttons displayed side-by-side */
+#toggle-container {
+  display: flex;
+  gap: 10px;
   margin-top: 5px;
+}
+
+/* Toggle button styling */
+#toggle-container button {
   padding: 4px 8px;
   font-size: 12px;
   background: #064;
@@ -198,7 +215,7 @@
   cursor: pointer;
 }
 
-/* Stats display styling */
+/* Stats display styling - appears centered below the text box */
 #stats-display {
   margin-top: 10px;
   font-size: 18px;
@@ -208,4 +225,7 @@
   padding: 10px;
   border-radius: 8px;
   max-width: 800px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
 }

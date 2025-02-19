@@ -9,10 +9,15 @@
 <body>
   <div id="developer-info">
     Developed by Derek Wen
-    <button id="toggle-stats">Show Stats</button>
+    <div id="toggle-container">
+      <button id="toggle-stats">Show Stats</button>
+      <button id="toggle-sound">Play Sound</button>
+    </div>
   </div>
-  <div id="word-container"></div>
-  <!-- Stats display below the word container -->
+  <div id="word-container">
+    <!-- Words get appended here -->
+  </div>
+  <!-- Stats display element now placed below the textbox -->
   <div id="stats-display" style="display: none;">Accuracy: 100% | WPM: 0</div>
   <script src="main.js"></script>
 </body>
