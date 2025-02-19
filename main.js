@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const wordContainer = document.getElementById('word-container');
+  const statsDisplay = document.getElementById('stats-display');
+  const toggleStatsButton = document.getElementById('toggle-stats');
   const keystrokeTimestamps = [];
   let typingTimer;
   let aboveThresholdTime = 0; // Accumulated time above 80 wpm (in ms, clamped 0–10000)
@@ -8,6 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Globals for persistent particles
   let persistentParticles = [];
   const maxPersistentParticles = 150;
+
+  // NEW: Stats variables
+  let totalTypedLetters = 0;
+  let totalCorrectLetters = 0;
+  let currentWpm = 0;
+  let statsVisible = false;
 
   // Simplified, easy & fun word bank
   const wordPool = [
@@ -21,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "programming", "developer", "keyboard", "function", "variable", "integer", "syntax",
     "framework", "algorithm", "compile", "console", "debugging", "database", "hardware",
     "software", "execute", "command", "network", "frontend", "backend"
-];
+  ];
 
   let words = [];
   let currentWordIndex = 0;
@@ -143,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (effectiveTime < 1000) effectiveTime = 1000;
     }
     const wpm = (count / 5) * (60000 / effectiveTime);
+    currentWpm = Math.round(wpm);
   
     if (wpm >= 80) {
       aboveThresholdTime = Math.min(10000, aboveThresholdTime + deltaTime);
@@ -168,8 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
         removePersistentParticles();
       }
     }
+
+    // Update stats display if visible
+    if (statsVisible) {
+      updateStatsDisplay();
+    }
   }
-  
 
   // Update the display of the current word.
   function updateCurrentWordDisplay() {
@@ -229,7 +242,19 @@ document.addEventListener('DOMContentLoaded', () => {
         fullyCorrect = false;
       }
     });
-    // If word is fully correct, you could add extra effects here if desired.
+    
+    // NEW: Update stats based on completed word.
+    let wordTotal = letterSpans.length;
+    let wordCorrect = 0;
+    letterSpans.forEach(span => {
+      if (span.classList.contains('correct')) {
+        wordCorrect++;
+      }
+    });
+    totalTypedLetters += wordTotal;
+    totalCorrectLetters += wordCorrect;
+    
+    // Optionally, you can trigger extra effects for fully correct words.
     triggerRipple();
     if (currentWordIndex > 0 && currentWordIndex % 5 === 0) {
       triggerParticles();
@@ -259,6 +284,27 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => bubble.remove(), duration * 1000);
   }
   // --- End Bubble Trail Effect ---
+
+  // NEW: Update the stats display element
+  function updateStatsDisplay() {
+    let accuracy = totalTypedLetters > 0 
+      ? Math.round((totalCorrectLetters / totalTypedLetters) * 100)
+      : 100;
+    statsDisplay.textContent = `Accuracy: ${accuracy}% | WPM: ${currentWpm}`;
+  }
+
+  // NEW: Toggle button event listener
+  toggleStatsButton.addEventListener('click', () => {
+    statsVisible = !statsVisible;
+    if (statsVisible) {
+      toggleStatsButton.textContent = "Hide Stats";
+      statsDisplay.style.display = "block";
+      updateStatsDisplay();
+    } else {
+      toggleStatsButton.textContent = "Show Stats";
+      statsDisplay.style.display = "none";
+    }
+  });
 
   // Initial word generation.
   generateWords();
@@ -291,4 +337,3 @@ document.addEventListener('DOMContentLoaded', () => {
   // Continuously update the background even if no keystroke occurs.
   setInterval(updateBackgroundBasedOnSpeed, 100);
 });
-
